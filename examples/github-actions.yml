@@ -1,0 +1,31 @@
+# Copy to .github/workflows/git-pulse.yml in your repository.
+# Builds the HTML report every Monday, uploads it as an artifact and fails
+# if the bus factor drops below 2.
+name: git-pulse
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history; a shallow clone only has one commit
+      - name: Report
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo:ro" -v "$RUNNER_TEMP:/out" \
+            ghcr.io/saizul/git-pulse:latest report --since "1 year ago" -o /out/git-pulse.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: git-pulse-report
+          path: ${{ runner.temp }}/git-pulse.html
+      - name: Bus factor gate
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" ghcr.io/saizul/git-pulse:latest bus-factor --min 2

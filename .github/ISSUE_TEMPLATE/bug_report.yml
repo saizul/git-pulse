@@ -1,0 +1,40 @@
+name: Bug report
+description: git-pulse crashed, printed wrong numbers or produced a broken report
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If the repository is private, please reproduce with a small public or scripted
+        repository instead of pasting names, emails or file paths you cannot share.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: The command you ran and its output or traceback.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: A public repository and revision, or a short script that builds a repository (see tests/conftest.py).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "Output of: git-pulse --version (or the image tag) and git --version"
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "pip install on macOS 15, Python 3.12 / Docker image on Ubuntu 24.04"

@@ -1,0 +1,8 @@
+# Save as .mailmap in the repository root (git-pulse and `git shortlog` both use it),
+# or pass it explicitly: git-pulse contributors --mailmap examples/mailmap.example
+#
+# Proper Name <proper@email>                 <commit@email>
+Alice Anders <alice@example.com>             <alice@old-laptop.local>
+Alice Anders <alice@example.com>             <12345+alice@users.noreply.github.com>
+# Fix a name and an email at the same time
+Bob Brown <bob@example.com>                  bob <bob@localhost>
