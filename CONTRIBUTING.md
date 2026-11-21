@@ -36,15 +36,13 @@ Each of these is self-contained and touches one or two files.
 4. **Pair-programming credit.** Credit the extra authors listed in commit message trailers in
    `contributors` behind a `--trailer-authors` flag. Needs `%(trailers:key=...)` in the
    format string. (`gitlog.py`, `analytics.contributors`, tests)
-5. **Exclude bots.** `--exclude-author GLOB` (repeatable) to drop `*[bot]` and
-   `dependabot*` from every section. (`cli.py`, `collect.py`, tests)
-6. **Language breakdown.** Churn grouped by file extension, as a table and a horizontal bar
+5. **Language breakdown.** Churn grouped by file extension, as a table and a horizontal bar
    chart in the report. (`analytics.py`, `text.py`, `report.py`, tests)
-7. **Sparkline per contributor** in the HTML report: weekly commits over the last year as a
+6. **Sparkline per contributor** in the HTML report: weekly commits over the last year as a
    tiny inline SVG. (`svg.py`, `report.py`, tests)
-8. **`--period` for the heatmap**: show only the last N weeks with `--since`, and document it
+7. **`--period` for the heatmap**: show only the last N weeks with `--since`, and document it
    in the README FAQ. (`README.md`)
-9. **Directory hotspots.** Aggregate hotspot scores per directory (depth configurable with
+8. **Directory hotspots.** Aggregate hotspot scores per directory (depth configurable with
    `--depth`). (`analytics.py`, `cli.py`, tests)
 
 ## Development setup

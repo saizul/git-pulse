@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `--exclude-author PATTERN` (repeatable) drops commits whose author name or email matches
+  from every section. Matching is case-insensitive and only `*` and `?` are wildcards, so
+  `'*[bot]'` matches `dependabot[bot]` literally.
+- `--exclude-bots` adds `'*[bot]'`, `'dependabot*'` and `'renovate*'`.
+- The JSON `meta` block gains `exclude_authors` and `excluded_commits`; the HTML report
+  shows them in its scope line.
+
 ## [0.1.0] - 2026-11-19
 
 ### Added

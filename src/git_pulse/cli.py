@@ -9,7 +9,7 @@ from collections.abc import Sequence
 
 from git_pulse import text
 from git_pulse._version import __version__
-from git_pulse.collect import SECTIONS, Analysis, Settings, to_jsonable
+from git_pulse.collect import BOT_PATTERNS, SECTIONS, Analysis, Settings, to_jsonable
 from git_pulse.gitlog import GitError, LogOptions
 from git_pulse.report import render_html
 
@@ -49,6 +49,20 @@ def _common(
         default=[],
         metavar="GLOB",
         help="ignore files matching GLOB in file metrics (repeatable)",
+    )
+    a.add_argument(
+        "--exclude-author",
+        dest="exclude_authors",
+        action="append",
+        default=[],
+        metavar="PATTERN",
+        help="drop commits whose author name or email matches PATTERN (* and ? wildcards) from every section "
+        "(repeatable)",
+    )
+    a.add_argument(
+        "--exclude-bots",
+        action="store_true",
+        help="shortcut for --exclude-author for " + ", ".join(repr(p) for p in BOT_PATTERNS),
     )
     a.add_argument(
         "--include-generated", action="store_true", help="keep lock files and minified assets in file metrics"
@@ -123,6 +137,7 @@ def settings_from(args: argparse.Namespace) -> Settings:
         utc=args.utc,
         max_merges=max(args.max_merges, 0),
         threshold=getattr(args, "threshold", 0.5),
+        exclude_authors=(*args.exclude_authors, *(BOT_PATTERNS if args.exclude_bots else ())),
     )
 
 

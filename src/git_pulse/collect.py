@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -10,6 +11,9 @@ from functools import cached_property
 
 from git_pulse import analytics, gitlog
 from git_pulse._version import __version__
+
+BOT_PATTERNS = ("*[bot]", "dependabot*", "renovate*")
+"""Author patterns ``--exclude-bots`` adds: GitHub App bots (``dependabot[bot]``), Dependabot and Renovate."""
 
 SECTIONS = ("summary", "timeline", "contributors", "bus_factor", "churn", "hotspots", "newcomers", "merges", "heatmap")
 
@@ -27,6 +31,31 @@ class Settings:
     max_merges: int = 300
     threshold: float = 0.5
     include_deleted: bool = False
+    exclude_authors: Sequence[str] = ()
+    """Drop commits whose author name or email matches one of these patterns from every section."""
+
+
+def author_matcher(patterns: Sequence[str]) -> re.Pattern[str] | None:
+    """Compile author patterns into one case-insensitive regex.
+
+    Only ``*`` (any text) and ``?`` (one character) are wildcards. Everything else, ``[``
+    and ``]`` included, is literal, so ``*[bot]`` matches ``dependabot[bot]`` as written.
+    """
+    parts = []
+    for pattern in patterns:
+        pattern = pattern.strip()
+        if not pattern:
+            raise ValueError("--exclude-author pattern must not be empty")
+        parts.append(re.escape(pattern).replace(r"\*", ".*").replace(r"\?", "."))
+    if not parts:
+        return None
+    return re.compile("(?:" + "|".join(parts) + r")\Z", re.IGNORECASE | re.DOTALL)
+
+
+def is_excluded_author(commit: gitlog.Commit, matcher: re.Pattern[str] | None) -> bool:
+    if matcher is None:
+        return False
+    return bool(matcher.match(commit.author_name) or matcher.match(commit.author_email))
 
 
 class Analysis:
@@ -36,12 +65,17 @@ class Analysis:
         self.settings = settings
         self.root = gitlog.ensure_repo(settings.repo)
         self._commits = list(commits) if commits is not None else None
+        self._author_matcher = author_matcher(settings.exclude_authors)
+        self.excluded_commits = 0
 
     @cached_property
     def commits(self) -> list[gitlog.Commit]:
-        if self._commits is not None:
-            return self._commits
-        return gitlog.read_commits(self.root, self.settings.log)
+        commits = self._commits if self._commits is not None else gitlog.read_commits(self.root, self.settings.log)
+        if self._author_matcher is None:
+            return commits
+        kept = [c for c in commits if not is_excluded_author(c, self._author_matcher)]
+        self.excluded_commits = len(commits) - len(kept)
+        return kept
 
     @property
     def file_exclude(self) -> tuple[str, ...]:
@@ -127,6 +161,7 @@ class Analysis:
 
     def meta(self) -> dict:
         log = self.settings.log
+        self.commits  # noqa: B018 - load the history so excluded_commits is known
         return {
             "tool": "git-pulse",
             "version": __version__,
@@ -136,6 +171,8 @@ class Analysis:
             "until": log.until,
             "paths": list(log.paths),
             "group_by": self.settings.group_by,
+            "exclude_authors": list(self.settings.exclude_authors),
+            "excluded_commits": self.excluded_commits,
             "generated_at": datetime.now().astimezone().replace(microsecond=0),
         }
 
