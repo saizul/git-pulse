@@ -91,6 +91,10 @@ def render_html(data: dict) -> str:
         scope.append(f"until {escape(meta['until'])}")
     if meta.get("paths"):
         scope.append("paths " + ", ".join(f"<code>{escape(p)}</code>" for p in meta["paths"]))
+    if meta.get("exclude_authors"):
+        authors = ", ".join(f"<code>{escape(p)}</code>" for p in meta["exclude_authors"])
+        n = meta.get("excluded_commits", 0)
+        scope.append(f"excluding authors {authors} ({n:,} commit{'' if n == 1 else 's'})")
 
     kpis = [
         ("Commits", _v(s["commits"])),

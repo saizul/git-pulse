@@ -104,6 +104,8 @@ All commands accept these options:
 | `--first-parent` | Follow only the first parent of merges (the "main line") |
 | `--mailmap FILE` | Extra mailmap file on top of the repository's `.mailmap` |
 | `--exclude GLOB` | Leave matching files out of file metrics (repeatable), e.g. `--exclude 'vendor/*'` |
+| `--exclude-author PATTERN` | Drop commits whose author name or email matches from every section (repeatable). `*` and `?` are the only wildcards, so `'*[bot]'` matches `dependabot[bot]` literally |
+| `--exclude-bots` | Shortcut for `--exclude-author` with `'*[bot]'`, `'dependabot*'` and `'renovate*'` |
 | `--include-generated` | Keep lock files and minified assets (`package-lock.json`, `go.sum`, `*.min.js`, ...) |
 | `--include-deleted` | Include files that no longer exist in churn and ownership |
 | `--group-by email\|name` | How to identify authors after the mailmap (default `email`) |
@@ -177,6 +179,9 @@ git-pulse report --since 2026-07-01 --until 2026-10-01 -o q3.html
 
 # Who merges, and how long branches live
 git-pulse merges --first-parent
+
+# Humans only: leave out Dependabot, Renovate, GitHub App bots and the release account
+git-pulse contributors --exclude-bots --exclude-author 'release@*'
 ```
 
 More in [`examples/`](examples/):
@@ -224,6 +229,12 @@ with `.mailmap`. Use `--first-parent` or a `.mailmap` to get closer.
 correlates with cyclomatic complexity across languages and needs no parser. Combined with
 change frequency it reliably points at the files that cost the most.
 
+**Bots dominate the numbers.** Dependency bots can make hundreds of commits a month. Pass
+`--exclude-bots`, and `--exclude-author` for your own automation accounts. Their commits are
+removed before anything is computed, so summary, contributors, churn, bus factor, merges and
+the heatmap all ignore them. The report and the JSON `meta` block list the patterns and how
+many commits were left out.
+
 **Someone appears twice.** Add a `.mailmap` (see `examples/mailmap.example`) or pass
 `--group-by name`.
 
@@ -244,7 +255,6 @@ Ideas marked "good first issue" are described in [CONTRIBUTING.md](CONTRIBUTING.
 
 - [ ] GitLab `See merge request !N` detection (good first issue)
 - [ ] `--format csv` and `--format markdown` (good first issue)
-- [ ] `--exclude-author` to drop bots (good first issue)
 - [ ] Churn by language / file extension (good first issue)
 - [ ] Per-contributor sparklines in the HTML report (good first issue)
 - [ ] Directory-level hotspots (good first issue)

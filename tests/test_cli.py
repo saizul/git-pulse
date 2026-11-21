@@ -168,3 +168,49 @@ def test_report_svgs_are_well_formed_xml(repo, tmp_path):
     assert len(svgs) >= 5
     for chart in svgs:
         ET.fromstring(chart)
+
+
+def _with_bots(repo: Repo) -> Repo:
+    bot = ("dependabot[bot]", "49699333+dependabot[bot]@users.noreply.github.com")
+    ci = ("Release Robot", "ci-robot@example.com")
+    repo.commit("Bump deps", {"package.json": "{}\n"}, author=bot, date="2024-05-03T10:00:00+00:00")
+    repo.commit("Bump more", {"package.json": "{ }\n"}, author=bot, date="2024-05-04T10:00:00+00:00")
+    repo.commit("Release 1.0", {"VERSION": "1.0\n"}, author=ci, date="2024-05-05T10:00:00+00:00")
+    return repo
+
+
+def test_exclude_bots_and_authors(repo, capsys):
+    _with_bots(repo)
+    _, out, _ = run(capsys, "summary", "-C", str(repo.path), "-f", "json")
+    assert json.loads(out)["commits"] == 19
+    _, out, _ = run(capsys, "contributors", "-C", str(repo.path), "-f", "json", "--exclude-bots")
+    names = [row["name"] for row in json.loads(out)]
+    assert "dependabot[bot]" not in names and "Release Robot" in names
+    _, out, _ = run(
+        capsys, "summary", "-C", str(repo.path), "-f", "json", "--exclude-bots", "--exclude-author", "CI-ROBOT@*"
+    )
+    assert json.loads(out)["commits"] == 16
+
+
+def test_exclude_author_brackets_are_literal_and_name_or_email_match(repo, capsys):
+    _with_bots(repo)
+    # "*[bot]" must not act as a character class that matches every name ending in b, o or t.
+    _, out, _ = run(capsys, "contributors", "-C", str(repo.path), "-f", "json", "--exclude-author", "*[bot]")
+    names = [row["name"] for row in json.loads(out)]
+    assert "Release Robot" in names and "dependabot[bot]" not in names
+    _, out, _ = run(capsys, "contributors", "-C", str(repo.path), "-f", "json", "--exclude-author", "*@example.com")
+    assert [row["name"] for row in json.loads(out)] == ["dependabot[bot]"]
+    code, _, err = run(capsys, "summary", "-C", str(repo.path), "--exclude-author", " ")
+    assert code == 2 and "must not be empty" in err
+
+
+def test_report_lists_excluded_authors(repo, tmp_path, capsys):
+    _with_bots(repo)
+    out_json = tmp_path / "r.json"
+    assert main(["report", "-C", str(repo.path), "-f", "json", "-o", str(out_json), "--exclude-bots"]) == 0
+    meta = json.loads(out_json.read_text())["meta"]
+    assert meta["exclude_authors"] == ["*[bot]", "dependabot*", "renovate*"]
+    assert meta["excluded_commits"] == 2
+    out_html = tmp_path / "r.html"
+    assert main(["report", "-C", str(repo.path), "-o", str(out_html), "--exclude-author", "ci-robot@*"]) == 0
+    assert "excluding authors <code>ci-robot@*</code> (1 commit)" in out_html.read_text()
